@@ -4,7 +4,7 @@ library(survival)
 # Function to calculate KM estimate at a specific time point
 calculate_km_estimate <- function(df, timepoint=1) {
   # Fit the Kaplan-Meier survival curve
-  fit <- survfit(Surv(event_times, event) ~ 1, data = df)
+  fit <- survfit(Surv(time, event) ~ 1, data = df)
   
   # Calculate the Kaplan-Meier estimate at specific timepoint
   return(summary(fit, times = timepoint)$surv)
@@ -12,7 +12,7 @@ calculate_km_estimate <- function(df, timepoint=1) {
 
 calculate_hazard_ratio <- function(df, timepoint=1) {
   # Create a survival object
-  surv_obj <- Surv(time = df$event_times, event = df$event)
+  surv_obj <- Surv(time = df$time, event = df$event)
   # Fit Cox proportional hazards model
   cox_model <- coxph(formula = surv_obj ~ trt, data = df)
   # Extract hazard ratio
@@ -23,7 +23,7 @@ calculate_hazard_ratio <- function(df, timepoint=1) {
 calculate_logrank_pvalue <- function(df, timepoint=1) {
   # Performing Log-rank test on df
   diff <- survdiff(Surv(
-    time = event_times,
+    time = time,
     event = event,
     type = 'right'
   ) ~ trt,

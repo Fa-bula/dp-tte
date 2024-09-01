@@ -6,10 +6,10 @@ find_global_sensitivity <- function(num_trt, N, max_aval, f) {
   all_vectors <- expand.grid(replicate(num_trt * N, 1:max_aval, simplify = FALSE))
   differences <- sapply(1:nrow(all_vectors), function(i) {
     # Construct data set df
-    event_times <- unlist(all_vectors[i, ])
+    time <- unlist(all_vectors[i, ])
     event <- rep(1, N * num_trt)
     trt <- rep(1:num_trt, each = N)
-    df <- data.frame(event_times, event, trt)
+    df <- data.frame(time, event, trt)
     result <- tryCatch(
       {
         f_value <- f(df, 1)
