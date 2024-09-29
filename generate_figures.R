@@ -8,6 +8,14 @@ p_cens_values <- c(0.3)
 eps_values <- seq(0.01, 0.5, by = 0.025)
 K <- 100
 
+# Plot options
+# Colors for scatter plot
+col1 <- "#4DAF4A"
+col2 <- "#E41A1C"
+col3 <- "#377EB8"
+# Size of points for scatter plot
+cex = 0.6
+
 # Create a data frame with all combinations using expand.grid
 params <- expand.grid(N = N_values, lambda = lambda_values, p_cens = p_cens_values)
 
@@ -40,17 +48,23 @@ generate_and_apply <- function(N, lambda, p_cens, f, sensitivity) {
   # Combine into matrix
   dp_f_matrix <- do.call(rbind, dp_f_values)
   q1_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.25))
-  mean_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.5))
+  median_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.5))
   q3_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.75))
  
-  cex = 0.6
-  plot(x = eps_values, y = mean_values, ylim=c(0.3, 1.3),
-       main = paste("Scatter Plot ", N),
+  plot(x = eps_values, y = median_values, ylim=c(0.3, 1.3),
+       main = paste("N = ", N),
        xlab = expression(epsilon), ylab = "Private KM estimate",
-       col = "#377EB8", pch = 19, cex = cex)
-  points(x = eps_values, y = q1_values, col = "#E41A1C", pch = 19, cex = cex)
-  points(x = eps_values, y = q3_values, col = "#4DAF4A", pch = 19, cex = cex)
+       col = col2, pch = 19, cex = cex)
+  
+  points(x = eps_values, y = q1_values, col = col3, pch = 19, cex = cex)
+  points(x = eps_values, y = q3_values, col = col1, pch = 19, cex = cex)
   abline(h = true_f_value, col = "black", lty = 2)
+  
+  legend("topright",                    # Position of the legend
+         legend = c("Q3", "Median", "Q1"),
+         col = c(col1, col2, col3),
+         pch = 19,
+         cex = 0.8)
 }
 
 # Apply the function to each row of the params data frame
