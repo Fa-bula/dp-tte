@@ -1,4 +1,3 @@
-# Load required library
 library(survival)
 
 # Function to calculate KM estimate at a specific time point
@@ -31,4 +30,19 @@ calculate_logrank_pvalue <- function(df, timepoint=1) {
   
   logrank_pval = pchisq(diff$chisq, length(diff$n) - 1, lower.tail = FALSE)
   return(logrank_pval)
+}
+
+calculate_median_survival_time <- function(df) {
+  # Create a survival object
+  surv_obj <- Surv(time = df$time, event = df$event)
+  
+  # Fit the Kaplan-Meier estimator
+  km_fit <- survfit(surv_obj ~ 1)
+  
+  # Extract median survival time
+  median_survival_time <- summary(km_fit)$table["median"]
+  names(median_survival_time) <- NULL
+  
+  # Return median survival time
+  return(median_survival_time)
 }
