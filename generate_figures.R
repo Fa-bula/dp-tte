@@ -1,17 +1,12 @@
 source("functions.R")
 library(DPpack)
 
-# Population counts
-N_values <- c(100, 200)
 # Rate parameter in exp distribution
 lambda_values <- c(1)
 # Probability of censoring
 p_cens_values <- c(0.3)
-# Trial duration
-t_duration_values <- c(2, 5)
-# Privacy budget
-eps_values <- seq(0.01, 0.5, by = 0.025)
-K <- 100
+# Number of iterations for calculation of DP values
+K <- 500
 
 # Plot options
 # Colors for scatter plot
@@ -20,10 +15,6 @@ col2 <- "#E41A1C"
 col3 <- "#377EB8"
 # Size of points for scatter plot
 cex = 0.6
-
-# Create a data frame with all combinations using expand.grid
-params <- expand.grid(N = N_values, lambda = lambda_values, 
-                      p_cens = p_cens_values, t_duration = t_duration_values)
 
 # Function to apply function f to generated data.frame for each combination
 generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab, ylim) {
@@ -78,11 +69,30 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
          cex = 0.8)
 }
 
+# Population counts
+N_values <- c(100, 200)
+# Trial duration
+t_duration_values <- c(2)
+# Privacy budget
+eps_values <- seq(0.05, 1, by = 0.025)
+# Create a data frame with all combinations using expand.grid
+params <- expand.grid(N = N_values, lambda = lambda_values, 
+                      p_cens = p_cens_values, t_duration = t_duration_values)
 
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_km_estimate, sensitivity=1 / x[1], 
-                     ylab="Private KM estimate", ylim=c(0, 1.2)))
+                     ylab="Private KM estimate", ylim=c(0.4, 0.55)))
+
+# Create a data frame with all combinations using expand.grid
+params <- expand.grid(N = N_values, lambda = lambda_values, 
+                      p_cens = p_cens_values, t_duration = t_duration_values)
+# Population counts
+N_values <- c(100)
+# Trial duration
+t_duration_values <- c(2, 5)
+# Privacy budget
+eps_values <- seq(0.05, 5, by = 0.1)
 
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
