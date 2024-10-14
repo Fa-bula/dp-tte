@@ -84,15 +84,15 @@ df_list <- apply(params, 1, function(x)
                      f=calculate_km_estimate, sensitivity=1 / x[1], 
                      ylab="Private KM estimate", ylim=c(0.4, 0.55)))
 
-# Create a data frame with all combinations using expand.grid
-params <- expand.grid(N = N_values, lambda = lambda_values, 
-                      p_cens = p_cens_values, t_duration = t_duration_values)
 # Population counts
 N_values <- c(100)
 # Trial duration
 t_duration_values <- c(2, 5)
 # Privacy budget
 eps_values <- seq(0.05, 5, by = 0.1)
+# Create a data frame with all combinations using expand.grid
+params <- expand.grid(N = N_values, lambda = lambda_values, 
+                      p_cens = p_cens_values, t_duration = t_duration_values)
 
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
