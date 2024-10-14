@@ -49,10 +49,14 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
   }
   # Combine into matrix
   dp_f_matrix <- do.call(rbind, dp_f_values)
+  # Calculate Q1, median and Q3 among all private values
   q1_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.25))
   median_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.5))
   q3_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.75))
- 
+  # Calculate relative range
+  rel_range <- (q3_values - q1_values) / true_f_value
+  index <- which(rel_range < rel_range_threshold)[1]
+  print(index)
   plot(x = eps_values, y = median_values, ylim=ylim,
        main = paste("N = ", N, ", Trial Duration = ", t_duration),
        xlab = expression(epsilon), ylab = ylab,
@@ -61,12 +65,25 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
   points(x = eps_values, y = q1_values, col = col3, pch = 19, cex = cex)
   points(x = eps_values, y = q3_values, col = col1, pch = 19, cex = cex)
   abline(h = true_f_value, col = "black", lty = 2)
-  
+  abline(v = eps_values[index], col = "blue", lty = 1)
   legend("topright",
          legend = c("Q3", "Median", "Q1"),
          col = c(col1, col2, col3),
          pch = 19,
          cex = 0.8)
+  
+  legend("bottomright",
+         legend = paste("Relative interquartile range <", rel_range_threshold),
+         pch = "|",
+         col = "blue",
+         horiz = TRUE,
+         bty = "n")
+  
+  legend("bottomleft",
+         legend = paste("True value of endpoint"),
+         lty = 2,
+         col = "black",
+         bty = "n")
 }
 
 # Population counts
@@ -75,6 +92,7 @@ N_values <- c(100, 200)
 t_duration_values <- c(2)
 # Privacy budget
 eps_values <- seq(0.05, 1, by = 0.025)
+rel_range_threshold <- 0.1
 # Create a data frame with all combinations using expand.grid
 params <- expand.grid(N = N_values, lambda = lambda_values, 
                       p_cens = p_cens_values, t_duration = t_duration_values)
@@ -89,7 +107,8 @@ N_values <- c(100)
 # Trial duration
 t_duration_values <- c(2, 5)
 # Privacy budget
-eps_values <- seq(0.05, 5, by = 0.1)
+eps_values <- seq(1, 25, by = 0.5)
+rel_range_threshold <- 0.25
 # Create a data frame with all combinations using expand.grid
 params <- expand.grid(N = N_values, lambda = lambda_values, 
                       p_cens = p_cens_values, t_duration = t_duration_values)
@@ -97,6 +116,6 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_median_survival_time, sensitivity=x[4], 
-                     ylab="Private median survival estimate", ylim=c(-20, 20)))
+                     ylab="Private median survival estimate", ylim=c(-5, 5)))
 
 
