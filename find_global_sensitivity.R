@@ -1,4 +1,4 @@
-source("KM_estimate.R")
+source("functions.R")
 
 # Iterates over all possible time-to-event data sets for num_trt treatment groups
 # with N subjects in each treatment group
@@ -33,5 +33,11 @@ find_global_sensitivity <- function(num_trt, N, max_aval, f) {
 # cat(paste("Global sensitivity of", deparse(substitute(calculate_hazard_ratio)),
 #           find_global_sensitivity(num_trt=2, N=4, max_aval=2, calculate_hazard_ratio)))
 
-cat(paste("Global sensitivity of", deparse(substitute(calculate_logrank_pvalue)),
-          find_global_sensitivity(num_trt=2, N=3, max_aval=4, calculate_logrank_pvalue)))
+for (x in c(2,3,4,5,6)) {
+  for (y in c(1, 2, 3, 4,5,6)) {
+    print(paste('N=', x, 'max_aval=', y))
+    cat(paste("Global sensitivity of", deparse(substitute(calculate_rmean_survival_time)),
+              find_global_sensitivity(num_trt=1, N=x, max_aval=y, calculate_rmean_survival_time)))
+    print('')
+  }
+}

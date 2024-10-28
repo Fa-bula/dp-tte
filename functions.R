@@ -32,7 +32,7 @@ calculate_logrank_pvalue <- function(df, timepoint=1) {
   return(logrank_pval)
 }
 
-calculate_median_survival_time <- function(df) {
+calculate_median_survival_time <- function(df, timepoint=1) {
   # Create a survival object
   surv_obj <- Surv(time = df$time, event = df$event)
   
@@ -45,4 +45,19 @@ calculate_median_survival_time <- function(df) {
   
   # Return median survival time
   return(median_survival_time)
+}
+
+calculate_rmean_survival_time <- function(df, timepoint=1) {
+  # Create a survival object
+  surv_obj <- Surv(time = df$time, event = df$event)
+  
+  # Fit the Kaplan-Meier estimator
+  km_fit <- survfit(surv_obj ~ 1)
+  
+  # Extract median survival time
+  rmean_survival_time <- summary(km_fit)$table["rmean"]
+  names(rmean_survival_time) <- NULL
+  
+  # Return median survival time
+  return(rmean_survival_time)
 }

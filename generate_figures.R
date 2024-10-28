@@ -56,7 +56,6 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
   # Calculate relative range
   rel_range <- (q3_values - q1_values) / true_f_value
   index <- which(rel_range < rel_range_threshold)[1]
-  print(index)
   plot(x = eps_values, y = median_values, ylim=ylim,
        main = paste("N = ", N, ", Trial Duration = ", t_duration),
        xlab = expression(epsilon), ylab = ylab,
@@ -116,6 +115,20 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_median_survival_time, sensitivity=x[4], 
-                     ylab="Private median survival estimate", ylim=c(-5, 5)))
+                     ylab="Private median survival time", ylim=c(-5, 5)))
 
+# Population counts
+N_values <- c(100, 200)
+# Trial duration
+t_duration_values <- c(2, 5)
+# Privacy budget
+eps_values <- seq(0.01, 2, by = 0.05)
+rel_range_threshold <- 0.1
+# Create a data frame with all combinations using expand.grid
+params <- expand.grid(N = N_values, lambda = lambda_values, 
+                      p_cens = p_cens_values, t_duration = t_duration_values)
 
+df_list <- apply(params, 1, function(x)
+  generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
+                     f=calculate_rmean_survival_time, sensitivity=(x[4] - 1) / x[1], 
+                     ylab="Private restricted mean survival time", ylim=c(0.8, 2)))
