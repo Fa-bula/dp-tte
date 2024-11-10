@@ -6,7 +6,8 @@ lambda_values <- c(1)
 # Probability of censoring
 p_cens_values <- c(0.3)
 # Number of iterations for calculation of DP values
-K <- 500
+K <- 1000
+par(mar = c(5, 5, 2, 2))
 
 # Plot options
 # Colors for scatter plot
@@ -17,7 +18,7 @@ col3 <- "#377EB8"
 cex = 0.6
 
 # Function to apply function f to generated data.frame for each combination
-generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab, ylim) {
+generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab, ylimdelta) {
   # Generate random survival times using exponential distribution
   time <- rexp(N, rate = lambda)
   
@@ -56,7 +57,9 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
   # Calculate relative range
   rel_range <- (q3_values - q1_values) / true_f_value
   index <- which(rel_range < rel_range_threshold)[1]
-  plot(x = eps_values, y = median_values, ylim=ylim,
+  plot(x = eps_values, y = median_values,
+       xlim = c(0, max(eps_values)),
+       ylim=c(true_f_value - ylimdelta, true_f_value + ylimdelta),
        main = paste("N = ", N, ", Trial Duration = ", t_duration),
        xlab = expression(epsilon), ylab = ylab,
        col = col2, pch = 19, cex = cex)
@@ -65,26 +68,10 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
   points(x = eps_values, y = q3_values, col = col1, pch = 19, cex = cex)
   abline(h = true_f_value, col = "black", lty = 2)
   abline(v = eps_values[index], col = "blue", lty = 1)
-  legend("topright",
-         legend = c("Q3", "Median", "Q1"),
-         col = c(col1, col2, col3),
-         pch = 19,
-         cex = 0.8)
-  
-  legend("bottomright",
-         legend = paste("Relative interquartile range <", rel_range_threshold),
-         pch = "|",
-         col = "blue",
-         horiz = TRUE,
-         bty = "n")
-  
-  legend("bottomleft",
-         legend = paste("True value of endpoint"),
-         lty = 2,
-         col = "black",
-         bty = "n")
 }
 
+# PART 1: KM estimate
+layout(matrix(c(1, 2, 3), nrow = 3, byrow = TRUE), heights = c(3, 3, 1))
 # Population counts
 N_values <- c(100, 200)
 # Trial duration
@@ -99,14 +86,28 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_km_estimate, sensitivity=1 / x[1], 
-                     ylab="Private KM estimate", ylim=c(0.4, 0.55)))
+                     ylab="Private KM estimate", ylimdelta=0.1))
+plot.new()
 
+legend("center",
+       legend = c("Q3", "Median", "Q1", 
+                  paste("Relative IQR <", rel_range_threshold),
+                  paste("True value of endpoint")),
+       col = c(col1, col2, col3, "blue", "black"),
+       pch = c(19, 19, 19, NA, NA),
+       lty = c(NA, NA, NA, 1, 2),
+       bty = "n",
+       cex = 0.8,
+       horiz = TRUE)
+
+# PART 2: Median survival time
+layout(matrix(c(1, 2, 3), nrow = 3, byrow = TRUE), heights = c(3, 3, 1))
 # Population counts
 N_values <- c(100)
 # Trial duration
 t_duration_values <- c(2, 5)
 # Privacy budget
-eps_values <- seq(1, 25, by = 0.5)
+eps_values <- seq(1, 30, by = 0.5)
 rel_range_threshold <- 0.25
 # Create a data frame with all combinations using expand.grid
 params <- expand.grid(N = N_values, lambda = lambda_values, 
@@ -115,14 +116,28 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_median_survival_time, sensitivity=x[4], 
-                     ylab="Private median survival time", ylim=c(-5, 5)))
+                     ylab="Private median survival time", ylimdelta=2))
+plot.new()
 
+legend("center",
+       legend = c("Q3", "Median", "Q1", 
+                  paste("Relative IQR <", rel_range_threshold),
+                  paste("True value of endpoint")),
+       col = c(col1, col2, col3, "blue", "black"),
+       pch = c(19, 19, 19, NA, NA),
+       lty = c(NA, NA, NA, 1, 2),
+       bty = "n",
+       cex = 0.8,
+       horiz = TRUE)
+
+# PART 3: RMST
+layout(matrix(c(1, 2, 3, 4, 5, 6), nrow = 3, byrow = TRUE), heights = c(3, 3, 1))
 # Population counts
 N_values <- c(100, 200)
 # Trial duration
 t_duration_values <- c(2, 5)
 # Privacy budget
-eps_values <- seq(0.01, 2, by = 0.05)
+eps_values <- seq(0.025, 0.8, by = 0.025)
 rel_range_threshold <- 0.1
 # Create a data frame with all combinations using expand.grid
 params <- expand.grid(N = N_values, lambda = lambda_values, 
@@ -131,4 +146,26 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_rmean_survival_time, sensitivity=(x[4] - 1) / x[1], 
-                     ylab="Private restricted mean survival time", ylim=c(0.8, 2)))
+                     ylab="Private restricted mean survival time", ylimdelta=0.6))
+
+plot.new()
+
+legend("center",
+       legend = c("Q3", "Median", "Q1"),
+       col = c(col1, col2, col3),
+       pch = c(19, 19, 19),
+       bty = "n",
+       cex = 0.8,
+       horiz = TRUE)
+
+plot.new()
+
+legend("center",
+       legend = c(paste("Relative IQR <", rel_range_threshold),
+                  paste("True value of endpoint")),
+       col = c("blue", "black"),
+       pch = c(NA, NA),
+       lty = c(1, 2),
+       bty = "n",
+       cex = 0.8,
+       horiz = TRUE)
