@@ -1,5 +1,7 @@
 source("functions.R")
 library(DPpack)
+library(kableExtra)
+library(dplyr)
 
 # Rate parameter in exp distribution
 lambda_values <- c(1)
@@ -57,6 +59,27 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
   # Calculate relative range
   rel_range <- (q3_values - q1_values) / true_f_value
   index <- which(rel_range < rel_range_threshold)[1]
+  # Create summary table
+  summary_table <- data.frame(
+    TrueValue = round(rep(true_f_value, length(eps_values)), 2),
+    Epsilon = round(eps_values, 2),
+    Q1 = round(q1_values, 2),
+    Median = round(median_values, 2),
+    Q3 = round(q3_values, 2),
+    RelativeRange = round(rel_range, 2)
+  )
+  # Keep only every 3rd row
+  summary_table <- summary_table %>%
+    slice(seq(1, n(), by = 3)) %>%
+    select(TrueValue, Epsilon, Q1, Median, Q3, RelativeRange)
+  
+  # Print the formatted table beautifully
+  kable_table <- kable(summary_table, caption = ylab, align="c") %>%
+    kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
+                  full_width = FALSE) %>%
+    collapse_rows(columns = 1, latex_hline = "major", valign = "top")
+  print(kable_table)
+  # Create plot
   plot(x = eps_values, y = median_values,
        xlim = c(0, max(eps_values)),
        ylim=c(true_f_value - ylimdelta, true_f_value + ylimdelta),
@@ -110,17 +133,17 @@ t_duration_values <- c(2, 5)
 eps_values <- seq(1, 30, by = 0.5)
 rel_range_threshold <- 0.25
 # Create a data frame with all combinations using expand.grid
-params <- expand.grid(N = N_values, lambda = lambda_values, 
+params <- expand.grid(N = N_values, lambda = lambda_values,
                       p_cens = p_cens_values, t_duration = t_duration_values)
 
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
-                     f=calculate_median_survival_time, sensitivity=x[4], 
+                     f=calculate_median_survival_time, sensitivity=x[4],
                      ylab="Private median survival time", ylimdelta=2))
 plot.new()
 
 legend("center",
-       legend = c("Q3", "Median", "Q1", 
+       legend = c("Q3", "Median", "Q1",
                   paste("Relative IQR <", rel_range_threshold),
                   paste("True value of endpoint")),
        col = c(col1, col2, col3, "blue", "black"),
@@ -140,12 +163,12 @@ t_duration_values <- c(2, 5)
 eps_values <- seq(0.025, 0.8, by = 0.025)
 rel_range_threshold <- 0.1
 # Create a data frame with all combinations using expand.grid
-params <- expand.grid(N = N_values, lambda = lambda_values, 
+params <- expand.grid(N = N_values, lambda = lambda_values,
                       p_cens = p_cens_values, t_duration = t_duration_values)
 
 df_list <- apply(params, 1, function(x)
   generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
-                     f=calculate_rmean_survival_time, sensitivity=(x[4] - 1) / x[1], 
+                     f=calculate_rmean_survival_time, sensitivity=(x[4] - 1) / x[1],
                      ylab="Private restricted mean survival time", ylimdelta=0.6))
 
 plot.new()

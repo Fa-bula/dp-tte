@@ -6,7 +6,7 @@ This R project is designed to explore and calculate differential private time-to
 - **`DP.Rproj`**: The RStudio project file, used to manage the project environment and settings in RStudio.
 - **`find_global_sensitivity.R`**: Script for calculating global sensitivity.
 - **`functions.R`**: A script that defines functions for time-to-event endpoints calculation (KM estimates, median survival time etc.).
-- **`generate_figures.R`**: A script for generating visualizations and plots. These figures are meant to assist with the interpretation of results.
+- **`generate_results.R`**: A script for generating visualizations and tables. Those figures and tables are meant to assist with the interpretation of results.
 
 ## Getting Started
 
