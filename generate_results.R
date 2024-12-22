@@ -19,8 +19,7 @@ col3 <- "#377EB8"
 # Size of points for scatter plot
 cex = 0.6
 
-# Function to apply function f to generated data.frame for each combination
-generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab, ylimdelta) {
+generate_data <- function(N, lambda, p_cens, t_duration) {
   # Generate random survival times using exponential distribution
   time <- rexp(N, rate = lambda)
   
@@ -28,69 +27,94 @@ generate_and_apply <- function(N, lambda, p_cens, t_duration, f, sensitivity, yl
   event <- rbinom(N, size = 1, prob = 1 - p_cens)
   
   # Censoring by end of trial
-  le_trial_duration <- time <= t_duration
+  within_trial_duration <- time <= t_duration
   time <- ifelse(time > t_duration, t_duration, time)
-  event <- event & le_trial_duration
+  event <- event & within_trial_duration
   
   # Combine survival times and event indicators into a data frame
-  df <- data.frame(
+  data.frame(
     time = time,
     event = event
   )
-  
-  # Calculate value of a function
-  true_f_value = f(df)
-  
+}
+
+calculate_dp_values <- function(true_value, eps_values, sensitivity, K) {
   # Calculate private f value K times
   dp_f_values <- list()
   for (k in 1:K) {
     # Add laplace noise to value with different privacy budget
-    dp_f <- sapply(eps_values, function(eps) LaplaceMechanism(true.values = true_f_value,
+    dp_f <- sapply(eps_values, function(eps) LaplaceMechanism(true.values = true_value,
                                                               eps = eps,
                                                               sensitivities = sensitivity))
     dp_f_values <- append(dp_f_values, list(dp_f))
   }
   # Combine into matrix
   dp_f_matrix <- do.call(rbind, dp_f_values)
-  # Calculate Q1, median and Q3 among all private values
-  q1_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.25))
-  median_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.5))
-  q3_values <- apply(dp_f_matrix, 2, function(x) quantile(x, probs = 0.75))
-  # Calculate relative range
-  rel_range <- (q3_values - q1_values) / true_f_value
+  dp_f_matrix
+}
+
+create_summary_table <- function(dp_matrix, true_value, eps_values, rel_range_threshold) {
+  q1_values <- apply(dp_matrix, 2, function(x) quantile(x, probs = 0.25))
+  median_values <- apply(dp_matrix, 2, quantile, probs = 0.5)
+  q3_values <- apply(dp_matrix, 2, quantile, probs = 0.75)
+
+  rel_range <- (q3_values - q1_values) / true_value
   index <- which(rel_range < rel_range_threshold)[1]
-  # Create summary table
+  
   summary_table <- data.frame(
-    TrueValue = round(rep(true_f_value, length(eps_values)), 2),
+    TrueValue = round(rep(true_value, length(eps_values)), 2),
     Epsilon = round(eps_values, 2),
     Q1 = round(q1_values, 2),
     Median = round(median_values, 2),
     Q3 = round(q3_values, 2),
     RelativeRange = round(rel_range, 2)
   )
-  # Keep only every 3rd row
-  summary_table <- summary_table %>%
+  
+  list(summary_table = summary_table, index = index)
+}
+
+plot_results <- function(eps_values, median_values, q1_values, q3_values, true_value, ylimdelta, ylab, index) {
+  print(eps_values)
+  print(q1_values)
+  plot(x = eps_values, y = median_values,
+       xlim = c(0, max(eps_values)),
+       ylim = c(true_value - ylimdelta, true_value + ylimdelta),
+       main = ylab,
+       xlab = expression(epsilon), ylab = ylab,
+       col = col2, pch = 19, cex = 0.6)
+  points(x = eps_values, y = q1_values, col = col3, pch = 19, cex = 0.6)
+  points(x = eps_values, y = q3_values, col = col1, pch = 19, cex = 0.6)
+  abline(h = true_value, col = "black", lty = 2)
+  abline(v = eps_values[index], col = "blue", lty = 1)
+}
+
+generate_results <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab, ylimdelta) {
+  # Step 1: Generate data
+  df <- generate_data(N, lambda, p_cens, t_duration)
+  
+  # Step 2: Calculate true and DP values
+  true_f_value <- f(df)
+  dp_matrix <- calculate_dp_values(true_f_value, eps_values, sensitivity, K)
+  
+  # Step 3: Create summary table
+  summary_result <- create_summary_table(dp_matrix, true_f_value, eps_values, rel_range_threshold)
+  summary_table <- summary_result$summary_table
+  index <- summary_result$index
+  
+  # Step 4: Print summary table
+  reduced_table <- summary_table %>%
     slice(seq(1, n(), by = 3)) %>%
     select(TrueValue, Epsilon, Q1, Median, Q3, RelativeRange)
   
-  # Print the formatted table beautifully
-  kable_table <- kable(summary_table, caption = ylab, align="c") %>%
+  kable_table <- kable(reduced_table, caption = ylab, align = "c") %>%
     kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"), 
                   full_width = FALSE) %>%
     collapse_rows(columns = 1, latex_hline = "major", valign = "top")
   print(kable_table)
-  # Create plot
-  plot(x = eps_values, y = median_values,
-       xlim = c(0, max(eps_values)),
-       ylim=c(true_f_value - ylimdelta, true_f_value + ylimdelta),
-       main = paste("N = ", N, ", Trial Duration = ", t_duration),
-       xlab = expression(epsilon), ylab = ylab,
-       col = col2, pch = 19, cex = cex)
   
-  points(x = eps_values, y = q1_values, col = col3, pch = 19, cex = cex)
-  points(x = eps_values, y = q3_values, col = col1, pch = 19, cex = cex)
-  abline(h = true_f_value, col = "black", lty = 2)
-  abline(v = eps_values[index], col = "blue", lty = 1)
+  # Step 5: Plot results
+  plot_results(eps_values, summary_table$Median, summary_table$Q1, summary_table$Q3,
+               true_f_value, ylimdelta, ylab, index)
 }
 
 # PART 1: KM estimate
@@ -107,7 +131,7 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
                       p_cens = p_cens_values, t_duration = t_duration_values)
 
 df_list <- apply(params, 1, function(x)
-  generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
+  generate_results(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_km_estimate, sensitivity=1 / x[1], 
                      ylab="Private KM estimate", ylimdelta=0.1))
 plot.new()
@@ -137,7 +161,7 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
                       p_cens = p_cens_values, t_duration = t_duration_values)
 
 df_list <- apply(params, 1, function(x)
-  generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
+  generate_results(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_median_survival_time, sensitivity=x[4],
                      ylab="Private median survival time", ylimdelta=2))
 plot.new()
@@ -167,7 +191,7 @@ params <- expand.grid(N = N_values, lambda = lambda_values,
                       p_cens = p_cens_values, t_duration = t_duration_values)
 
 df_list <- apply(params, 1, function(x)
-  generate_and_apply(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
+  generate_results(N=x[1], lambda=x[2], p_cens=x[3], t_duration=x[4],
                      f=calculate_rmean_survival_time, sensitivity=(x[4] - 1) / x[1],
                      ylab="Private restricted mean survival time", ylimdelta=0.6))
 
