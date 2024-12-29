@@ -1,8 +1,12 @@
-source("functions.R")
 library(DPpack)
 library(kableExtra)
 library(dplyr)
 
+source("functions.R")
+source("generate_data.R")
+source("calculate_dp_values.R")
+source("create_summary_table.R")
+source("plot_results.R")
 # Rate parameter in exp distribution
 lambda_values <- c(1)
 # Probability of censoring
@@ -19,74 +23,6 @@ col3 <- "#377EB8"
 # Size of points for scatter plot
 cex = 0.6
 
-generate_data <- function(N, lambda, p_cens, t_duration) {
-  # Generate random survival times using exponential distribution
-  time <- rexp(N, rate = lambda)
-  
-  # Generate random event indicators
-  event <- rbinom(N, size = 1, prob = 1 - p_cens)
-  
-  # Censoring by end of trial
-  within_trial_duration <- time <= t_duration
-  time <- ifelse(time > t_duration, t_duration, time)
-  event <- event & within_trial_duration
-  
-  # Combine survival times and event indicators into a data frame
-  data.frame(
-    time = time,
-    event = event
-  )
-}
-
-calculate_dp_values <- function(true_value, eps_values, sensitivity, K) {
-  # Calculate private f value K times
-  dp_f_values <- list()
-  for (k in 1:K) {
-    # Add laplace noise to value with different privacy budget
-    dp_f <- sapply(eps_values, function(eps) LaplaceMechanism(true.values = true_value,
-                                                              eps = eps,
-                                                              sensitivities = sensitivity))
-    dp_f_values <- append(dp_f_values, list(dp_f))
-  }
-  # Combine into matrix
-  dp_f_matrix <- do.call(rbind, dp_f_values)
-  dp_f_matrix
-}
-
-create_summary_table <- function(dp_matrix, true_value, eps_values, rel_range_threshold) {
-  q1_values <- apply(dp_matrix, 2, function(x) quantile(x, probs = 0.25))
-  median_values <- apply(dp_matrix, 2, quantile, probs = 0.5)
-  q3_values <- apply(dp_matrix, 2, quantile, probs = 0.75)
-
-  rel_range <- (q3_values - q1_values) / true_value
-  index <- which(rel_range < rel_range_threshold)[1]
-  
-  summary_table <- data.frame(
-    TrueValue = round(rep(true_value, length(eps_values)), 2),
-    Epsilon = round(eps_values, 2),
-    Q1 = round(q1_values, 2),
-    Median = round(median_values, 2),
-    Q3 = round(q3_values, 2),
-    RelativeRange = round(rel_range, 2)
-  )
-  
-  list(summary_table = summary_table, index = index)
-}
-
-plot_results <- function(eps_values, median_values, q1_values, q3_values, true_value, ylimdelta, ylab, index) {
-  print(eps_values)
-  print(q1_values)
-  plot(x = eps_values, y = median_values,
-       xlim = c(0, max(eps_values)),
-       ylim = c(true_value - ylimdelta, true_value + ylimdelta),
-       main = ylab,
-       xlab = expression(epsilon), ylab = ylab,
-       col = col2, pch = 19, cex = 0.6)
-  points(x = eps_values, y = q1_values, col = col3, pch = 19, cex = 0.6)
-  points(x = eps_values, y = q3_values, col = col1, pch = 19, cex = 0.6)
-  abline(h = true_value, col = "black", lty = 2)
-  abline(v = eps_values[index], col = "blue", lty = 1)
-}
 
 generate_results <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab, ylimdelta) {
   # Step 1: Generate data
@@ -114,7 +50,8 @@ generate_results <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab
   
   # Step 5: Plot results
   plot_results(eps_values, summary_table$Median, summary_table$Q1, summary_table$Q3,
-               true_f_value, ylimdelta, ylab, index)
+               true_f_value, ylimdelta, 
+               paste("N = ", N, ", Trial Duration = ", t_duration), ylab, index)
 }
 
 # PART 1: KM estimate
