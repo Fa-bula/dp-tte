@@ -7,22 +7,7 @@ source("generate_data.R")
 source("calculate_dp_values.R")
 source("create_summary_table.R")
 source("plot_results.R")
-# Rate parameter in exp distribution
-lambda_values <- c(1)
-# Probability of censoring
-p_cens_values <- c(0.3)
-# Number of iterations for calculation of DP values
-K <- 1000
-par(mar = c(5, 5, 2, 2))
-
-# Plot options
-# Colors for scatter plot
-col1 <- "#4DAF4A"
-col2 <- "#E41A1C"
-col3 <- "#377EB8"
-# Size of points for scatter plot
-cex = 0.6
-
+source("params.R")
 
 generate_results <- function(N, lambda, p_cens, t_duration, f, sensitivity, ylab, ylimdelta) {
   # Step 1: Generate data
